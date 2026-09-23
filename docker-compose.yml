@@ -1,0 +1,30 @@
+# Local research testbed only. Do not point these services at production ICS.
+services:
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      DATABASE_URL: sqlite:////data/assurance.db
+      OPERATING_MODE: advisory
+      LAB_MODE: "false"
+      FAIL_SAFE_MODE: fail_to_advisory
+      SECRET_KEY: lab-compose-change-me
+      CORS_ORIGINS: http://localhost:8080,http://127.0.0.1:8080
+      SEED_ON_STARTUP: "true"
+    volumes:
+      - assurance-data:/data
+    ports:
+      - "8000:8000"
+
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
+
+volumes:
+  assurance-data:

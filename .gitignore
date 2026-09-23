@@ -1,0 +1,58 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+
+# Local databases and runtime
+*.db
+*.sqlite
+*.sqlite3
+data/
+logs/
+*.log
+
+# Secrets — never commit real credentials
+.env
+.env.local
+.env.*.local
+secrets/
+*.pem
+*.key
+
+# Node / frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Experiment outputs (keep fixtures, ignore generated runs)
+experiments/results/runs/
+experiments/results/*.png
+experiments/results/latest.json
+!experiments/results/.gitkeep
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Docker
+.docker/
+
+# Alembic local
+alembic/versions/__pycache__/

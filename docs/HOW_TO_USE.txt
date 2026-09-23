@@ -1,0 +1,166 @@
+PLC CHANGE ASSURANCE GATEWAY
+What it is, whether it is generic, and how to use it
+====================================================
+
+WHAT IT DOES
+------------
+This software sits in front of PLC writes (setpoints, outputs, timers,
+and similar parameters) and answers one question:
+
+    Should this change be allowed right now?
+
+It does not only check “is the number in range?”  For each requested
+write it looks at:
+
+  - who asked (identity, host, role)
+  - whether there is a valid approved change ticket
+  - whether the value is legal in the current process state
+  - whether the transition, rate of change, and time window are legal
+  - whether related parameters on this PLC and other PLCs still make
+    sense together
+  - whether predicted physical safety would be violated
+
+Hard safety failures cannot be waved through by a “low risk” score.
+Every decision comes with reasons that can be shown to an operator or
+used in an experiment log.
+
+Default mode is passive: analyze, alert, and log.  It will not block
+real PLC traffic unless you explicitly turn on laboratory enforcement.
+
+
+IS IT GENERIC?
+--------------
+The decision machinery is generic.  The current plant is not.
+
+Generic (reusable as-is for another process):
+  - the evaluation pipeline (auth, provenance, range, state/FSM,
+    temporal, dependencies, cross-PLC, safety, fused decision)
+  - YAML policy format
+  - approved-change tickets
+  - REST API and operator UI
+  - audit log, experiment harness, and operating modes
+    (passive / advisory / enforcement)
+
+Instance-specific (this lab is a water-tank heating plant):
+  - tag names (TankLevel_SP, PumpSpeed, InletValve, …)
+  - process states (IDLE, FILLING, HEATING, …)
+  - numeric bounds, rate limits, and pump/valve rules
+  - the three demo PLCs (tank, pump, valve)
+  - the water-tank simulator / digital twin
+
+To apply the same gateway to a different process you would replace the
+plant catalog and policies, not rewrite the engines.  Today that catalog
+lives mainly in:
+
+    backend/app/catalog.py
+    policies/heating-safety.yaml
+
+Siemens, CIP, OPC UA, DNP3, and IEC-104 are interface stubs only.
+Live protocol support in this prototype is REST plus Modbus-style
+register writes.  Logic-change interception is simulated.  Do not
+point this at production ICS.
+
+
+HOW TO RUN IT (LOCAL LAB)
+-------------------------
+From the repository root, in PowerShell:
+
+    python -m venv .venv
+    .\.venv\Scripts\Activate.ps1
+    pip install -r requirements.txt
+    $env:PYTHONPATH = "backend;."
+    python -m scripts.seed
+    python -m uvicorn app.main:app --app-dir backend --reload
+
+In a second terminal:
+
+    cd frontend
+    npm install
+    npm run dev
+
+Then open:
+
+    UI:  http://localhost:5173
+    API: http://localhost:8000
+
+Lab logins (local only; change these if you keep the lab running):
+
+    engineer-a   /  lab-engineer-change-me     (engineer)
+    admin        /  lab-admin-change-me        (admin)
+    researcher   /  lab-researcher-change-me   (researcher)
+
+One-command Docker lab:
+
+    docker compose up --build
+
+    API: http://localhost:8000
+    UI:  http://localhost:8080
+
+
+HOW TO USE IT DAY TO DAY
+------------------------
+1. Log in as engineer-a.
+2. Overview shows plant, mode, and recent decisions.
+3. Live Changes is where you submit a write: PLC, parameter, new value,
+   optional change ticket, current process state.
+4. The gateway returns ALLOW, WARN, HOLD, BLOCK, or similar, plus the
+   list of engines that fired.
+5. Research compares this framework against simpler baselines
+   (static range, FSM only, FSM + temporal).
+
+Typical engineer write (should ALLOW in IDLE with a valid ticket):
+
+    PLC:                 tank-plc-01
+    Parameter:           TankLevel_SP
+    Previous / new:      50  ->  60
+    Ticket:              CHG-1234
+    Process state:       IDLE
+
+Typical attacker write (in global range 0–100, illegal in IDLE):
+
+    TankLevel_SP  60 -> 95   in IDLE    -> BLOCK
+
+Other built-in blocks:
+
+    Slow ramp 60, 63, 66, 69, 72        -> BLOCK (rate > 10 in 30 s)
+    Pump high while inlet valve closed  -> BLOCK (dependency / cross-PLC)
+
+You can also drive the same path from the API after login:
+
+    POST /auth/login
+    POST /change-requests/evaluate
+    GET  /audit
+    GET  /research/compare
+
+Seeded approvals and policies are created by:
+
+    python -m scripts.seed
+
+To add or change a policy, post YAML to POST /policies, or edit
+policies/heating-safety.yaml and re-seed.  To change plant physics
+and state bounds, edit backend/app/catalog.py and re-seed.
+
+Enforcement (actually refusing the write) stays off unless both
+are set:
+
+    LAB_MODE=true
+    OPERATING_MODE=enforcement
+
+
+REPRODUCE THE DEMO AND PAPER NUMBERS
+------------------------------------
+    $env:PYTHONPATH = "backend;."
+    python scripts/run_demo.py
+    python scripts/run_experiments.py
+    pytest
+
+Demo and experiment output is written under experiments/results/.
+
+
+SAFETY
+------
+This is a laboratory research testbed.  Recovery actions are advisory
+only and never assume that “put the old value back” is safe.  Machine
+learning is not required and cannot override hard constraints.
+
+Further reading: README.md and docs/PLC_CHANGE_ASSURANCE_MASTER_PLAN.md

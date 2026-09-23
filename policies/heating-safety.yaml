@@ -1,0 +1,16 @@
+policy:
+  name: heating-safety
+  version: "1.0.0"
+  applies_to:
+    plc: tank-plc-01
+  when:
+    process_state: HEATING
+  rules:
+    - Temperature_SP <= 85
+    - Pressure <= 70
+    - if:
+        PumpSpeed: "> 60"
+      then:
+        InletValve: "> 40"
+  change_requirements:
+    approval_required: true
