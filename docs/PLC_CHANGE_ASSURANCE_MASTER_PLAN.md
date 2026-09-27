@@ -1,34 +1,10 @@
 # PLC Change Assurance — Canonical Master Plan
 
-This is the implementation plan for a research-grade **Cyber-Physical PLC Change Assurance Gateway**. It is written after inspecting the repository (empty git project at `D:\Dakota State University\PLC Research\PLC`) and resolving design questions that can be settled without waiting for further input.
+This is the implementation plan for a research-grade **Cyber-Physical PLC Change Assurance Gateway**. 
 
----
 
-## 1. Current repository assessment
 
-**Inspection date:** 2026-09-20
-
-| Finding | Detail |
-| --- | --- |
-| Git repository | Present |
-| Application code | None |
-| Docs / research artifacts | None prior to this plan |
-| Docker / testbed | None |
-| PLC vendor bindings | None |
-| Implied existing architecture | None — greenfield |
-
-Because there is no prior architecture to preserve, the structure in prompt §51 is adopted at the repository root (the workspace *is* the project).
-
-Questions resolved from the repository itself:
-
-- No existing language, framework, or schema to extend.
-- No production credentials or plant models to migrate.
-- No reason to support a legacy API.
-- Safe to choose a research-friendly stack and SQLite-default persistence so `pytest` and a one-command demo do not require a local PostgreSQL install.
-
----
-
-## 2. Proposed system architecture
+## 1. Proposed system architecture
 
 ### Stack justification
 
@@ -46,7 +22,7 @@ Questions resolved from the repository itself:
 
 PostgreSQL is supported via `DATABASE_URL`. Default is SQLite (`data/assurance.db`) so a new researcher can run the suite without extra services.
 
-### Module map
+### 2.Module map
 
 ```
 Engineer / HMI / attacker / experiment runner
